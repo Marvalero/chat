@@ -3,7 +3,9 @@ package chat
 import (
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/Marvalero/chat/trace"
 	"github.com/gorilla/websocket"
 )
 
@@ -12,6 +14,7 @@ type room struct {
 	join    chan *client
 	leave   chan *client
 	clients map[*client]bool
+	tracer  trace.Tracer
 }
 
 const (
@@ -25,6 +28,7 @@ func NewRoom() *room {
 		join:    make(chan *client),
 		leave:   make(chan *client),
 		clients: make(map[*client]bool),
+		tracer:  trace.New(os.Stdout),
 	}
 }
 
@@ -53,10 +57,13 @@ func (r *room) Run() {
 		select {
 		case client := <-r.join:
 			r.clients[client] = true
+			r.tracer.Trace("New client joined")
 		case client := <-r.leave:
 			delete(r.clients, client)
 			close(client.send)
+			r.tracer.Trace("Client left")
 		case msg := <-r.forward:
+			r.tracer.Trace("New message:", msg)
 			for client := range r.clients {
 				client.send <- msg
 			}
