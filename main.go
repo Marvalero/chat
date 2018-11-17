@@ -1,11 +1,14 @@
 package main
 
 import (
+	"flag"
 	"html/template"
 	"log"
 	"net/http"
 	"path/filepath"
 	"sync"
+
+	"github.com/Marvalero/chat/chat"
 )
 
 type templateHandler struct {
@@ -15,7 +18,7 @@ type templateHandler struct {
 }
 
 func (t *templateHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	t.getTempl().Execute(w, nil)
+	t.getTempl().Execute(w, r)
 }
 
 // This guarantees that the template rendering will only be executed once, regardless of how many goroutines are calling ServeHTTP
@@ -27,13 +30,18 @@ func (t *templateHandler) getTempl() *template.Template {
 }
 
 func main() {
-	mainRoom := NewRoom()
-	go mainRoom.run()
+	var addr = flag.String("addr", ":8080", "The addr of the application.")
+	flag.Parse()
+
+	mainRoom := chat.NewRoom()
+	go mainRoom.Run()
 
 	http.Handle("/", &templateHandler{filename: "chat.html"})
 	http.Handle("/room", mainRoom)
 
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	log.Println("Starting web server on", *addr)
+
+	if err := http.ListenAndServe(*addr, nil); err != nil {
 		log.Fatal("ListenAndServe err:", err)
 	}
 }
