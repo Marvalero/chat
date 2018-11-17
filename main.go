@@ -27,7 +27,11 @@ func (t *templateHandler) getTempl() *template.Template {
 }
 
 func main() {
+	mainRoom := NewRoom()
+	go mainRoom.run()
+
 	http.Handle("/", &templateHandler{filename: "chat.html"})
+	http.Handle("/room", mainRoom)
 
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal("ListenAndServe err:", err)
